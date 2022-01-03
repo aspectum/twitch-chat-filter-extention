@@ -1,0 +1,19 @@
+{
+  "name": "Twitch Chat Filter",
+  "version": "1.0",
+  "description": "Filter chat messages",
+  "manifest_version": 3,
+  "host_permissions": [
+    "*://*.twitch.tv/*"
+  ],
+  "permissions": ["tabs", "storage"],
+  "action": {
+    "default_popup": "app.html"
+  },
+  "content_scripts": [
+   {
+     "matches": ["*://*.twitch.tv/*"],
+     "js": ["chatFilter.js"]
+   }
+ ]
+}
