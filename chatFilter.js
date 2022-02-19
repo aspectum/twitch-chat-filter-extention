@@ -12,7 +12,7 @@ function textImgChildren(el, descendants) {
     }
 }
 
-function callback(mutationList, observer) {
+function filterCallback(mutationList, observer) {
   mutationList.forEach( (mutation) => {
     switch(mutation.type) {
       case 'childList':
@@ -34,12 +34,12 @@ function callback(mutationList, observer) {
 
                     })
                     if (debugFlag) {
-                        console.log(`TwitchChatFilter: ${txt}`)
+                        console.log(`[TwitchChatFilter]: ${txt}`)
                     }
                     filterList.forEach(f => {
                         let re = new RegExp(f, 'i')
                         if (txt.search(re) >= 0) {
-							console.log(`TwitchChatFilter: Blocked ${f}`)
+							console.log(`[TwitchChatFilter]: Blocked ${f}`)
                             node.style.display = 'none'
                         }
                     })
@@ -60,7 +60,7 @@ function callback(mutationList, observer) {
 function loadFilters() {
     chrome.storage.local.get(['twitchChatFilterList'], function(data) {
         if (data.twitchChatFilterList) {
-            console.log('TwitchChatFilter: loaded ', data.twitchChatFilterList)
+            console.log('[TwitchChatFilter]: loaded filters ', data.twitchChatFilterList)
             filterList = data.twitchChatFilterList
         }
     })
@@ -68,7 +68,7 @@ function loadFilters() {
 
 function enableDebug() {
     debugFlag = !debugFlag
-    console.log(`TwitchChatFilter: Debug is ${debugFlag}`)
+    console.log(`[TwitchChatFilter]: Debug is ${debugFlag}`)
 }
 
 // function injectSettings() {
@@ -85,30 +85,37 @@ function enableDebug() {
 //     console.log('TwitchChatFilter: Injected settings');
 // }
 
-window.addEventListener("load", () => {
-    
-    loadFilters()
-    
-    var chat = document.querySelector('.chat-scrollable-area__message-container')
-    
-    // console.log(`TwitchChatFilter: ${chat}`);
-    // console.log(`TwitchChatFilter: ${document.readyState}`);
-    
-    if (chat) {
-        var observerOptions = {
-            childList: true,
-            attributes: true,
-    
-            // Omit (or set to false) to observe only changes to the parent node
-            subtree: true
+function checkIfChat() {
+    if (chat === null || (!document.body.contains(chat))) {
+        observer.disconnect()
+        chat = document.querySelector('.chat-scrollable-area__message-container')
+        if (chat === null) {
+            debugFlag && console.log(`[TwitchChatFilter]: Chat not found`)
+            return
         }
-    
-        var observer = new MutationObserver(callback);
         observer.observe(chat, observerOptions);
-    
-        // injectSettings()
+        console.log(`[TwitchChatFilter]: Chat found`)
     }
-})
+    return
+}
 
+function init() {
+    window.addEventListener("load", () => {
+        loadFilters()
+        var intervalId = setInterval(() => {checkIfChat()}, 1000)
+    })
+    console.log(`[TwitchChatFilter]: Extension loaded`)
+}
+
+
+var chat = null;
+var observerOptions = {
+    childList: true,
+    attributes: true,
+    subtree: true
+}
+var observer = new MutationObserver(filterCallback);
 var filterList = []
 var debugFlag = false
+
+init()
