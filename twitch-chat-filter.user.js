@@ -13,7 +13,10 @@
 // @grant        window.onurlchange
 // ==/UserScript==
 /* globals GM_config */
-/// <reference path="GM_config/types/index.d.ts" />
+/// <reference path="GM_config.d.ts" />
+/// <reference path="tampermonkey.d.ts" />
+
+// @ts-check
 
 (function () {
   "use strict";
@@ -25,9 +28,8 @@
   };
 
   /**
-   *
    * @param {Node} el
-   * @param {Array<ChildNode>} descendants
+   * @param {Node[]} descendants
    */
   function textImgChildren(el, descendants) {
     const children = el.childNodes;
@@ -43,12 +45,15 @@
     }
   }
 
+  /** @type {HTMLElement|null} */
   let chat = null;
   let observer = new MutationObserver(filterCallback);
+  /** @type {string[]} */
   let filterList = [];
   let debugFlag = false;
 
   function init() {
+    // @ts-ignore
     if (window.onurlchange === null) {
       window.addEventListener("urlchange", () => {
         debugFlag && console.log(`[TwitchChatFilter]: URL changed`);
@@ -84,8 +89,9 @@
   }
 
   function loadSettings() {
-    filterList = GM_config.get("blacklist").split("\n");
-    debugFlag = Boolean(GM_config.get("debugFlag"));
+    filterList =
+      /** @type {string} */ (GM_config.get("blacklist")).split("\n") ?? [];
+    debugFlag = /** @type {boolean} */ (GM_config.get("debugFlag")) ?? false;
     console.log("[TwitchChatFilter]: loaded filters ", filterList);
     console.log(
       `[TwitchChatFilter]: debug mode ${debugFlag ? "ENABLED" : "DISABLED"} `
@@ -97,8 +103,11 @@
     mutationList.forEach((mutation) => {
       if (mutation.type === "childList" && mutation.addedNodes) {
         mutation.addedNodes.forEach((node) => {
-          const msg = node.querySelector("span.message");
+          const msg = /** @type {HTMLElement} */ (node).querySelector(
+            "span.message"
+          );
           if (msg) {
+            /** @type {Node[]} */
             let des = [];
             textImgChildren(msg, des);
 
@@ -107,7 +116,7 @@
               if (cn.nodeName === "#text") {
                 txt = txt + " " + cn.textContent;
               } else if (cn.nodeName === "IMG") {
-                txt = txt + " " + cn.alt;
+                txt = txt + " " + /** @type {HTMLImageElement} */ (cn).alt;
               }
             });
             if (debugFlag) {
@@ -117,7 +126,7 @@
               let re = new RegExp(f, "i");
               if (txt.search(re) >= 0) {
                 console.log(`[TwitchChatFilter]: Blocked ${f}`);
-                node.style.display = "none";
+                /** @type {HTMLElement} */ (node).style.display = "none";
               }
             });
           }
