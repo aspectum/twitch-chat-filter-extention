@@ -98,41 +98,53 @@
     );
   }
 
+  /**
+   *
+   * @param {Node} node
+   */
+  function filter(node) {
+    const msg = /** @type {HTMLElement} */ (node).querySelector("span.message");
+    if (msg) {
+      /** @type {Node[]} */
+      let des = [];
+      textImgChildren(msg, des);
+
+      let txt = "";
+      des.forEach((cn) => {
+        if (cn.nodeName === "#text") {
+          txt = txt + " " + cn.textContent;
+        } else if (cn.nodeName === "IMG") {
+          txt = txt + " " + /** @type {HTMLImageElement} */ (cn).alt;
+        }
+      });
+      if (debugFlag) {
+        console.log(`[TwitchChatFilter]: ${txt}`);
+      }
+      filterList.forEach((f) => {
+        let re = new RegExp(f, "i");
+        if (txt.search(re) >= 0) {
+          console.log(`[TwitchChatFilter]: Blocked ${f}`);
+          /** @type {HTMLElement} */ (node).style.display = "none";
+        }
+      });
+    }
+  }
+
   /** @type {MutationCallback} */
   function filterCallback(mutationList) {
     mutationList.forEach((mutation) => {
       if (mutation.type === "childList" && mutation.addedNodes) {
-        mutation.addedNodes.forEach((node) => {
-          const msg = /** @type {HTMLElement} */ (node).querySelector(
-            "span.message"
-          );
-          if (msg) {
-            /** @type {Node[]} */
-            let des = [];
-            textImgChildren(msg, des);
-
-            let txt = "";
-            des.forEach((cn) => {
-              if (cn.nodeName === "#text") {
-                txt = txt + " " + cn.textContent;
-              } else if (cn.nodeName === "IMG") {
-                txt = txt + " " + /** @type {HTMLImageElement} */ (cn).alt;
-              }
-            });
-            if (debugFlag) {
-              console.log(`[TwitchChatFilter]: ${txt}`);
-            }
-            filterList.forEach((f) => {
-              let re = new RegExp(f, "i");
-              if (txt.search(re) >= 0) {
-                console.log(`[TwitchChatFilter]: Blocked ${f}`);
-                /** @type {HTMLElement} */ (node).style.display = "none";
-              }
-            });
-          }
-        });
+        mutation.addedNodes.forEach(filter);
       }
     });
+  }
+
+  function purge() {
+    if (chat) {
+      chat.querySelectorAll(".chat-line__message").forEach(filter);
+    } else {
+      console.warn("[TwitchChatFilter]: No chat to purge");
+    }
   }
 
   GM_config.init({
@@ -158,4 +170,5 @@
 
   GM_registerMenuCommand("Config", () => GM_config.open());
   GM_registerMenuCommand("Reload settings", () => loadSettings());
+  GM_registerMenuCommand("Purge", () => purge());
 })();
