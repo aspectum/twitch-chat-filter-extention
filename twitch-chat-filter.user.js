@@ -84,6 +84,7 @@
         }
       } else {
         debugFlag && console.log(`[TwitchChatFilter]: Chat already exists`);
+        clearInterval(findChatInterval);
       }
     }, 1000);
   }
